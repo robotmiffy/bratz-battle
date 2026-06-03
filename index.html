@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Doll Battle</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg-sparkles" aria-hidden="true"></div>
+  <main class="app-shell">
+    <header class="hero">
+      <p class="eyebrow">♡ Y2K fashion-doll face off ♡</p>
+      <h1>Doll Battle</h1>
+      <p>Pick your fave, save icons, and watch your doll stats sparkle.</p>
+    </header>
+
+    <nav class="tabs" aria-label="Doll Battle sections">
+      <button class="tab active" data-view="battle">Battle</button>
+      <button class="tab" data-view="favourites">Faves</button>
+      <button class="tab" data-view="history">History</button>
+      <button class="tab" data-view="stats">Stats</button>
+    </nav>
+
+    <section id="battle" class="view active">
+      <div class="battle-stage" id="battleStage"></div>
+      <button id="skipBtn" class="secondary">Skip this matchup ✨</button>
+    </section>
+
+    <section id="favourites" class="view">
+      <h2>Saved favourites</h2>
+      <div id="favouritesGrid" class="mini-grid"></div>
+    </section>
+
+    <section id="history" class="view">
+      <h2>Voting history</h2>
+      <div id="historyList" class="history-list"></div>
+    </section>
+
+    <section id="stats" class="view">
+      <h2>Stats dashboard</h2>
+      <div class="stats-grid" id="statsGrid"></div>
+      <h3>Leaderboard</h3>
+      <div id="leaderboard" class="leaderboard"></div>
+    </section>
+
+    <footer>
+      Doll images and reference details are credited per item to <a href="https://www.lookinbratz.com/database/database" target="_blank" rel="noopener">Lookin’ Bratz Database</a>. This fan app does not own the images or claim affiliation.
+    </footer>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
