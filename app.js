@@ -7,6 +7,7 @@ const store = {
 
 let pair = [];
 let validDolls = [];
+let battleBag = [];
 const save = () => {
   localStorage.setItem('dollBattle:favourites', JSON.stringify(store.favourites));
   localStorage.setItem('dollBattle:votes', JSON.stringify(store.votes));
@@ -30,17 +31,65 @@ async function preparePlayableDolls() {
   })));
   validDolls = checked.filter(doll => doll.imageOk);
   if (validDolls.length < 2) validDolls = [...dolls];
+  resetBattleBag();
 }
 
-function randomDoll(excludeIds = []) {
-  const options = validDolls.filter(doll => !excludeIds.includes(doll.id));
-  return options[Math.floor(Math.random() * options.length)];
+function shuffle(items) {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function dollKey(doll) {
+  return `${doll.character}|${doll.collection}|${String(doll.name).replace(/\s*v\d+\s*$/i, '').trim()}`.toLowerCase();
+}
+
+function resetBattleBag() {
+  battleBag = shuffle(validDolls);
+}
+
+function pullRandomDoll(exclusions = {}) {
+  if (battleBag.length === 0) resetBattleBag();
+
+  const { ids = [], keys = [], characters = [] } = exclusions;
+  let index = battleBag.findIndex(doll =>
+    !ids.includes(doll.id) &&
+    !keys.includes(dollKey(doll)) &&
+    !characters.includes(doll.character)
+  );
+
+  if (index === -1) {
+    index = battleBag.findIndex(doll =>
+      !ids.includes(doll.id) &&
+      !keys.includes(dollKey(doll))
+    );
+  }
+
+  if (index === -1) {
+    index = battleBag.findIndex(doll => !ids.includes(doll.id));
+  }
+
+  if (index === -1) return null;
+  return battleBag.splice(index, 1)[0];
 }
 
 function pickPair() {
-  const first = randomDoll();
-  const second = randomDoll([first.id]);
-  pair = [first, second];
+  const first = pullRandomDoll();
+  const second = pullRandomDoll({
+    ids: [first?.id],
+    keys: [dollKey(first)],
+    characters: [first?.character]
+  });
+
+  if (!first || !second) {
+    $('#battleStage').innerHTML = empty('Not enough dolls with working images to start a battle.');
+    return;
+  }
+
+  pair = shuffle([first, second]);
   renderBattle();
 }
 
@@ -76,11 +125,7 @@ function voteFor(winnerId) {
   store.votes.unshift({ winnerId, loserId, at: new Date().toISOString() });
   save();
 
-  const winner = byId(winnerId);
-  const challenger = randomDoll([winnerId]);
-  pair = [winner, challenger];
-
-  renderBattle();
+  pickPair();
   renderAll(false);
 }
 
