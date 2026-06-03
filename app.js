@@ -8,6 +8,8 @@ const store = {
 let pair = [];
 let validDolls = [];
 let battleBag = [];
+let recentCollections = [];
+let recentYears = [];
 const save = () => {
   localStorage.setItem('dollBattle:favourites', JSON.stringify(store.favourites));
   localStorage.setItem('dollBattle:votes', JSON.stringify(store.votes));
@@ -51,37 +53,52 @@ function resetBattleBag() {
   battleBag = shuffle(validDolls);
 }
 
+function scoreCandidate(doll, exclusions = {}) {
+  const { ids = [], keys = [], characters = [], collections = [], years = [] } = exclusions;
+  if (ids.includes(doll.id) || keys.includes(dollKey(doll))) return -Infinity;
+
+  let score = Math.random();
+  if (characters.includes(doll.character)) score -= 50;
+  if (collections.includes(doll.collection)) score -= 100;
+  if (years.includes(doll.year)) score -= 20;
+  if (recentCollections.includes(doll.collection)) score -= 15;
+  if (recentYears.includes(doll.year)) score -= 5;
+  return score;
+}
+
 function pullRandomDoll(exclusions = {}) {
-  if (battleBag.length === 0) resetBattleBag();
+  if (battleBag.length < 2) resetBattleBag();
 
-  const { ids = [], keys = [], characters = [] } = exclusions;
-  let index = battleBag.findIndex(doll =>
-    !ids.includes(doll.id) &&
-    !keys.includes(dollKey(doll)) &&
-    !characters.includes(doll.character)
-  );
+  let bestIndex = -1;
+  let bestScore = -Infinity;
 
-  if (index === -1) {
-    index = battleBag.findIndex(doll =>
-      !ids.includes(doll.id) &&
-      !keys.includes(dollKey(doll))
-    );
+  battleBag.forEach((doll, index) => {
+    const score = scoreCandidate(doll, exclusions);
+    if (score > bestScore) {
+      bestScore = score;
+      bestIndex = index;
+    }
+  });
+
+  if (bestIndex === -1 || bestScore === -Infinity) {
+    bestIndex = battleBag.findIndex(doll => !(exclusions.ids || []).includes(doll.id));
   }
 
-  if (index === -1) {
-    index = battleBag.findIndex(doll => !ids.includes(doll.id));
-  }
-
-  if (index === -1) return null;
-  return battleBag.splice(index, 1)[0];
+  if (bestIndex === -1) return null;
+  return battleBag.splice(bestIndex, 1)[0];
 }
 
 function pickPair() {
-  const first = pullRandomDoll();
+  const first = pullRandomDoll({
+    collections: recentCollections,
+    years: recentYears
+  });
   const second = pullRandomDoll({
     ids: [first?.id],
     keys: [dollKey(first)],
-    characters: [first?.character]
+    characters: [first?.character],
+    collections: [first?.collection, ...recentCollections],
+    years: [first?.year, ...recentYears]
   });
 
   if (!first || !second) {
@@ -90,6 +107,8 @@ function pickPair() {
   }
 
   pair = shuffle([first, second]);
+  recentCollections = [first.collection, second.collection, ...recentCollections].slice(0, 6);
+  recentYears = [first.year, second.year, ...recentYears].slice(0, 4);
   renderBattle();
 }
 
