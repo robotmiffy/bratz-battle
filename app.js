@@ -6,6 +6,7 @@ const store = {
 };
 
 let pair = [];
+let validDolls = [];
 const save = () => {
   localStorage.setItem('dollBattle:favourites', JSON.stringify(store.favourites));
   localStorage.setItem('dollBattle:votes', JSON.stringify(store.votes));
@@ -13,9 +14,33 @@ const save = () => {
 const $ = (sel) => document.querySelector(sel);
 const byId = (id) => dolls.find(d => d.id === id);
 
+function imageLoads(src) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = src;
+  });
+}
+
+async function preparePlayableDolls() {
+  const checked = await Promise.all(dolls.map(async doll => ({
+    ...doll,
+    imageOk: await imageLoads(doll.image)
+  })));
+  validDolls = checked.filter(doll => doll.imageOk);
+  if (validDolls.length < 2) validDolls = [...dolls];
+}
+
+function randomDoll(excludeIds = []) {
+  const options = validDolls.filter(doll => !excludeIds.includes(doll.id));
+  return options[Math.floor(Math.random() * options.length)];
+}
+
 function pickPair() {
-  const shuffled = [...dolls].sort(() => Math.random() - 0.5);
-  pair = shuffled.slice(0, 2);
+  const first = randomDoll();
+  const second = randomDoll([first.id]);
+  pair = [first, second];
   renderBattle();
 }
 
@@ -50,7 +75,12 @@ function voteFor(winnerId) {
   const loserId = pair.find(d => d.id !== winnerId)?.id;
   store.votes.unshift({ winnerId, loserId, at: new Date().toISOString() });
   save();
-  pickPair();
+
+  const winner = byId(winnerId);
+  const challenger = randomDoll([winnerId]);
+  pair = [winner, challenger];
+
+  renderBattle();
   renderAll(false);
 }
 
@@ -112,5 +142,12 @@ document.addEventListener('click', (e) => {
 });
 
 $('#skipBtn').addEventListener('click', pickPair);
-pickPair();
-renderAll(false);
+
+async function init() {
+  $('#battleStage').innerHTML = '<p class="empty">Loading dolls…</p>';
+  await preparePlayableDolls();
+  pickPair();
+  renderAll(false);
+}
+
+init();
